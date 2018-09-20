@@ -56,30 +56,34 @@ float2 uv = a.texcoord.xy;
 float4 pos = a.vertex;  
 // coast setup  
 float2 posUV = uv;  
-float4 coastMask = costMaskF(posUV); // mask for coast in blue channel  
+float4 coastMask = costMaskF(posUV); // mask for coast in blue channel 
+// custom uv  
+float2 foamUV = float2(a.vertex.x *_FoamTileX, a.vertex.z *_FoamTileY);  
+float2 normalUV = float2(uv.x * 2.0, uv.y * 2.0) * 4.0;   
+
+// coast waves    
 float animTimeX = uv.y *_WaveTile1 + _Time.w * _WaveSpeed; // add time for shore X  
 float animTimeY = uv.y *_WaveTile2 + _Time.w * _WaveSpeed; // add time for shore Y  
 float waveXCos = cos(animTimeX)+1;  
 float waveYCos = cos(animTimeY);  
-// coast waves  
 pos.z += (waveXCos * _WaveWind * coastMask) * coastMask;  
 pos.y += (waveYCos * _WaveHeight * _WaveWind * 0.25) * coastMask; 
 o.pos = mul(UNITY_MATRIX_MVP, pos);  
-// custom uv  
-float2 foamUV = float2(a.vertex.x *_FoamTileX, a.vertex.z *_FoamTileY);  
-float2 normalUV = float2(uv.x * 2.0, uv.y * 2.0) * 4.0;  
+
 // reflections  
 float3 lightPos = float3(-22.0, -180.0, -6.80);  
 float3 lightDir = float3(15.0, 1.0, 10.0);  
 float3 lightVec = normalize(lightPos - o.pos.xyz);  
 float lightRef = (1.0 - (dot(lightDir, lightVec)));  
 lightRef = lightRef * 0.25 + (lightRef * lightRef); // get rid of left side  
+
 // edge and depth water  
 float step = saturate(_WaterDepth);  
 float depthX = (a.vertex.x * 0.22 - 1.0); // centering depth area  
 float depthY = (a.vertex.z * 0.22 - 1.5); // centering depth area  
 float depth = pow((depthX * depthX + depthY * depthY) * 0.006,3);   
 float edge = saturate(step - (1.0 - depth) * 0.5);   
+
 // Vertex Custom Output  
 o._Color.rgb = lerp(_CoastColor.rgb, _OceanColor.rgb, edge);  
 o._Depth.rgb = lerp(_CoastDepth.rgb, _OceanDepth.rgb, edge);  
@@ -96,6 +100,7 @@ float4 normal = tex2D(_WaveNormal, i._Normal.xy);
 float3 foam = float3(tex2D(_FoamDiffuse, float2(i._IslandFoam.z, i._IslandFoam.w - _Time.x)).r, 1.0, 1.0);  
 float3 mask = tex2D(_IslandMask, i._IslandFoam.xy).rgb*foam;  
 mask.g += _WaterContrast; // contrast point  
+
 float4 color = float4(lerp(i._Depth, i._Color, (normal.x * i._Normal.z) + (normal.y * (1.0 - i._Normal.z))), 0.5)  
  + exp2(log2((((normal.z) * i._Normal.z)*(1-mask.b*0.75) // waves light
  + (normal.w * (1.0 - i._Normal.z))*(1-mask.b*0.75) // waves light  
